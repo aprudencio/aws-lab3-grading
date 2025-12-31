@@ -59,6 +59,7 @@ Resources:
     Type: AWS::SQS::Queue 
     Properties:
       QueueName: coderoad-lab-3-metadata-queue
+      VisibilityTimeout: 120
 
   MetadataFunction:
     Type: AWS::Serverless::Function
