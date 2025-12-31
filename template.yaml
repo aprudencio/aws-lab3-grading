@@ -35,10 +35,21 @@ Resources:
         Variables:
           METADATA_QUEUE_URL: !Sub "https://sqs.${AWS::Region}.amazonaws.com/${AWS::AccountId}/coderoad-lab-3-metadata-queue"
       Policies:
-        - S3ReadPolicy:
-          BucketName: !Sub "coderoad-lab-3-ingest-bucket-${AWS::AccountId}-${AWS::Region}"
-        - SQSSendMessagePolicy:
-            QueueName: coderoad-lab-3-metadata-queue
+        - PolicyName: IngestFunctionPolicy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - s3:GetObject
+                  - s3:ListBucket
+                Resource:
+                  - !Sub "arn:aws:s3:::coderoad-lab-3-ingest-bucket-${AWS::AccountId}-${AWS::Region}"
+                  - !Sub "arn:aws:s3:::coderoad-lab-3-ingest-bucket-${AWS::AccountId}-${AWS::Region}/*"
+              - Effect: Allow
+                Action:
+                  - sqs:SendMessage
+                Resource: !Sub "arn:aws:sqs:${AWS::Region}:${AWS::AccountId}:coderoad-lab-3-metadata-queue"
       Events:
         S3IngestEvent:
           Type: S3
@@ -61,12 +72,27 @@ Resources:
       Timeout: 60
       MemorySize: 512
       Policies:
-        - S3ReadPolicy:
-          BucketName: !Sub "coderoad-lab-3-ingest-bucket-${AWS::AccountId}-${AWS::Region}"
-        - S3WritePolicy:
-          BucketName: !Sub "coderoad-lab-3-ingest-bucket-${AWS::AccountId}-${AWS::Region}"
-        - SQSPollerPolicy:
-            QueueName: coderoad-lab-3-metadata-queue
+        - PolicyName: MetadataFunctionPolicy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - s3:GetObject
+                  - s3:ListBucket
+                Resource:
+                  - !Sub "arn:aws:s3:::coderoad-lab-3-ingest-bucket-${AWS::AccountId}-${AWS::Region}"
+                  - !Sub "arn:aws:s3:::coderoad-lab-3-ingest-bucket-${AWS::AccountId}-${AWS::Region}/*"
+              - Effect: Allow
+                Action:
+                  - s3:PutObject
+                Resource: !Sub "arn:aws:s3:::coderoad-lab-3-ingest-bucket-${AWS::AccountId}-${AWS::Region}/metadata/*"
+              - Effect: Allow
+                Action:
+                  - sqs:ReceiveMessage
+                  - sqs:DeleteMessage
+                  - sqs:GetQueueAttributes
+                Resource: !Sub "arn:aws:sqs:${AWS::Region}:${AWS::AccountId}:coderoad-lab-3-metadata-queue"
       Events:
         SQSMetaEvent:
           Type: SQS
