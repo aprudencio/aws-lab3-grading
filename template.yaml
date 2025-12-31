@@ -36,14 +36,14 @@ Resources:
           METADATA_QUEUE_URL: !Sub "https://sqs.${AWS::Region}.amazonaws.com/${AWS::AccountId}/coderoad-lab-3-metadata-queue"
       Policies:
         - S3ReadPolicy:
-            BucketName: !Ref IngestBucket
+          BucketName: !Sub "coderoad-lab-3-ingest-bucket-${AWS::AccountId}-${AWS::Region}"
         - SQSSendMessagePolicy:
             QueueName: coderoad-lab-3-metadata-queue
       Events:
         S3IngestEvent:
           Type: S3
           Properties:
-            Bucket: !Ref IngestBucket
+            Bucket: !Sub "coderoad-lab-3-ingest-bucket-${AWS::AccountId}-${AWS::Region}"
             Events: s3:ObjectCreated:*
   MetadataQueue:
     Type: AWS::SQS::Queue 
@@ -62,16 +62,16 @@ Resources:
       MemorySize: 512
       Policies:
         - S3ReadPolicy:
-            BucketName: !Ref IngestBucket
+          BucketName: !Sub "coderoad-lab-3-ingest-bucket-${AWS::AccountId}-${AWS::Region}"
         - S3WritePolicy:
-            BucketName: !Ref IngestBucket
+          BucketName: !Sub "coderoad-lab-3-ingest-bucket-${AWS::AccountId}-${AWS::Region}"
         - SQSPollerPolicy:
             QueueName: coderoad-lab-3-metadata-queue
       Events:
         SQSMetaEvent:
           Type: SQS
           Properties:
-            Queue: !GetAtt MetadataQueue.Arn
+            Queue: !Sub "arn:aws:sqs:${AWS::Region}:${AWS::AccountId}:coderoad-lab-3-metadata-queue"
             BatchSize: 1  
 Outputs:
   IngestBucketName:
