@@ -12,7 +12,7 @@ Resources:
       LayerName: coderoad-lab-3-python-deps
       ContentUri: src/python_deps/
       CompatibleRuntimes:
-        - python3.14
+        - python3.11
 
   # set the resources for this  architecture: S3 → Lambda (Ingest) → SQS → Lambda (Metadata Extractor) → S3
   IngestBucket:
@@ -24,7 +24,7 @@ Resources:
     Properties:
       FunctionName: coderoad-lab-3-ingest-function
       Handler: index.handler
-      Runtime: python3.14
+      Runtime: python3.11
       CodeUri: src/ingest_function/
       Layers:
         - !Ref PythonDependenciesLayer
@@ -52,7 +52,7 @@ Resources:
     Properties:
       FunctionName: coderoad-lab-3-metadata-function
       Handler: index.handler
-      Runtime: python3.14
+      Runtime: python3.11
       CodeUri: src/metadata_function/
       Layers:
         - !Ref PythonDependenciesLayer
