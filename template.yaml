@@ -36,7 +36,8 @@ Resources:
       Policies:
         - S3ReadPolicy:
             BucketName: !Ref IngestBucket
-        - SQSFullAccessPolicy: {}
+        - SQSSendMessagePolicy:
+            QueueName: !GetAtt MetadataQueue.QueueName
       Events:
         S3IngestEvent:
           Type: S3
@@ -63,6 +64,8 @@ Resources:
             BucketName: !Ref IngestBucket
         - S3WritePolicy:
             BucketName: !Ref IngestBucket
+        - SQSPollerPolicy:
+            QueueName: !GetAtt MetadataQueue.QueueName
       Events:
         SQSMetaEvent:
           Type: SQS
