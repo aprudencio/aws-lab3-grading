@@ -35,26 +35,24 @@ Resources:
         Variables:
           METADATA_QUEUE_URL: !Sub "https://sqs.${AWS::Region}.amazonaws.com/${AWS::AccountId}/coderoad-lab-3-metadata-queue"
       Policies:
-        - PolicyName: IngestFunctionPolicy
-          PolicyDocument:
-            Version: '2012-10-17'
-            Statement:
-              - Effect: Allow
-                Action:
-                  - s3:GetObject
-                  - s3:ListBucket
-                Resource:
-                  - !Sub "arn:aws:s3:::coderoad-lab-3-ingest-bucket-${AWS::AccountId}-${AWS::Region}"
-                  - !Sub "arn:aws:s3:::coderoad-lab-3-ingest-bucket-${AWS::AccountId}-${AWS::Region}/*"
-              - Effect: Allow
-                Action:
-                  - sqs:SendMessage
-                Resource: !Sub "arn:aws:sqs:${AWS::Region}:${AWS::AccountId}:coderoad-lab-3-metadata-queue"
+        - Version: '2012-10-17'
+          Statement:
+            - Effect: Allow
+              Action:
+                - s3:GetObject
+                - s3:ListBucket
+              Resource:
+                - !Sub "arn:aws:s3:::${IngestBucket}"
+                - !Sub "arn:aws:s3:::${IngestBucket}/*"
+            - Effect: Allow
+              Action:
+                - sqs:SendMessage
+              Resource: !GetAtt MetadataQueue.Arn
       Events:
         S3IngestEvent:
           Type: S3
           Properties:
-            Bucket: !Sub "coderoad-lab-3-ingest-bucket-${AWS::AccountId}-${AWS::Region}"
+            Bucket: !Ref IngestBucket
             Events: s3:ObjectCreated:*
   MetadataQueue:
     Type: AWS::SQS::Queue 
@@ -72,33 +70,31 @@ Resources:
       Timeout: 60
       MemorySize: 512
       Policies:
-        - PolicyName: MetadataFunctionPolicy
-          PolicyDocument:
-            Version: '2012-10-17'
-            Statement:
-              - Effect: Allow
-                Action:
-                  - s3:GetObject
-                  - s3:ListBucket
-                Resource:
-                  - !Sub "arn:aws:s3:::coderoad-lab-3-ingest-bucket-${AWS::AccountId}-${AWS::Region}"
-                  - !Sub "arn:aws:s3:::coderoad-lab-3-ingest-bucket-${AWS::AccountId}-${AWS::Region}/*"
-              - Effect: Allow
-                Action:
-                  - s3:PutObject
-                Resource: !Sub "arn:aws:s3:::coderoad-lab-3-ingest-bucket-${AWS::AccountId}-${AWS::Region}/metadata/*"
-              - Effect: Allow
-                Action:
-                  - sqs:ReceiveMessage
-                  - sqs:DeleteMessage
-                  - sqs:GetQueueAttributes
-                Resource: !Sub "arn:aws:sqs:${AWS::Region}:${AWS::AccountId}:coderoad-lab-3-metadata-queue"
+        - Version: '2012-10-17'
+          Statement:
+            - Effect: Allow
+              Action:
+                - s3:GetObject
+                - s3:ListBucket
+              Resource:
+                - !Sub "arn:aws:s3:::${IngestBucket}"
+                - !Sub "arn:aws:s3:::${IngestBucket}/*"
+            - Effect: Allow
+              Action:
+                - s3:PutObject
+              Resource: !Sub "arn:aws:s3:::${IngestBucket}/metadata/*"
+            - Effect: Allow
+              Action:
+                - sqs:ReceiveMessage
+                - sqs:DeleteMessage
+                - sqs:GetQueueAttributes
+              Resource: !GetAtt MetadataQueue.Arn
       Events:
         SQSMetaEvent:
           Type: SQS
           Properties:
-            Queue: !Sub "arn:aws:sqs:${AWS::Region}:${AWS::AccountId}:coderoad-lab-3-metadata-queue"
-            BatchSize: 1  
+            Queue: !GetAtt MetadataQueue.Arn
+            BatchSize: 1
 Outputs:
   IngestBucketName:
     Description: "S3 Bucket for Ingesting Files"
