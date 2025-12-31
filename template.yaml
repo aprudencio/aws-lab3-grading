@@ -1,12 +1,11 @@
-# Will create the resources for this  architecture: S3 → Lambda (Ingest) → SQS → Lambda (Metadata Extractor) → S3
 AWSTemplateFormatVersion: '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
 Description: >
   coderoad-lab-3-prj
+  Fixed circular dependency for S3 -> Lambda -> SQS -> Lambda architecture.
 
-  Sample SAM Template for coderoad-lab-3-prj
 Resources:
-  # Lambda layer for shared Python dependencies (boto3, Pillow, etc.)
+  # Lambda layer for shared Python dependencies
   PythonDependenciesLayer:
     Type: AWS::Serverless::LayerVersion
     Properties:
@@ -15,11 +14,26 @@ Resources:
       CompatibleRuntimes:
         - python3.11
 
-
+  # Explicitly defined S3 Bucket
   IngestBucket:
     Type: AWS::S3::Bucket
     Properties:
-      BucketName: coderoad-lab-3-ingest-bucket-${AWS::AccountId}-${AWS::Region}
+      BucketName: !Sub "coderoad-lab-3-ingest-bucket-${AWS::AccountId}-${AWS::Region}"
+      # Notification is handled here to prevent the SAM circular loop
+      NotificationConfiguration:
+        LambdaConfigurations:
+          - Event: s3:ObjectCreated:*
+            Function: !GetAtt IngestFunction.Arn
+
+  # Permission for S3 to trigger the Ingest Lambda
+  AllowS3ToInvokeIngestFunction:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref IngestFunction
+      Principal: s3.amazonaws.com
+      SourceArn: !Sub "arn:aws:s3:::coderoad-lab-3-ingest-bucket-${AWS::AccountId}-${AWS::Region}"
+
   IngestFunction:   
     Type: AWS::Serverless::Function
     Properties:
@@ -33,31 +47,19 @@ Resources:
       MemorySize: 256
       Environment:
         Variables:
-          METADATA_QUEUE_URL: !Sub "https://sqs.${AWS::Region}.amazonaws.com/${AWS::AccountId}/coderoad-lab-3-metadata-queue"
+          METADATA_QUEUE_URL: !Ref MetadataQueue
       Policies:
-        - Version: '2012-10-17'
-          Statement:
-            - Effect: Allow
-              Action:
-                - s3:GetObject
-                - s3:ListBucket
-              Resource:
-                - !Sub "arn:aws:s3:::${IngestBucket}"
-                - !Sub "arn:aws:s3:::${IngestBucket}/*"
-            - Effect: Allow
-              Action:
-                - sqs:SendMessage
-              Resource: !GetAtt MetadataQueue.Arn
-      Events:
-        S3IngestEvent:
-          Type: S3
-          Properties:
-            Bucket: !Ref IngestBucket
-            Events: s3:ObjectCreated:*
+        # Using SAM Policy Templates to avoid circular ARN references
+        - S3ReadPolicy:
+            BucketName: !Sub "coderoad-lab-3-ingest-bucket-${AWS::AccountId}-${AWS::Region}"
+        - SQSSendMessagePolicy:
+            QueueName: !GetAtt MetadataQueue.QueueName
+
   MetadataQueue:
     Type: AWS::SQS::Queue 
     Properties:
       QueueName: coderoad-lab-3-metadata-queue
+
   MetadataFunction:
     Type: AWS::Serverless::Function
     Properties:
@@ -70,42 +72,25 @@ Resources:
       Timeout: 60
       MemorySize: 512
       Policies:
-        - Version: '2012-10-17'
-          Statement:
-            - Effect: Allow
-              Action:
-                - s3:GetObject
-                - s3:ListBucket
-              Resource:
-                - !Sub "arn:aws:s3:::${IngestBucket}"
-                - !Sub "arn:aws:s3:::${IngestBucket}/*"
-            - Effect: Allow
-              Action:
-                - s3:PutObject
-              Resource: !Sub "arn:aws:s3:::${IngestBucket}/metadata/*"
-            - Effect: Allow
-              Action:
-                - sqs:ReceiveMessage
-                - sqs:DeleteMessage
-                - sqs:GetQueueAttributes
-              Resource: !GetAtt MetadataQueue.Arn
+        - S3ReadPolicy:
+            BucketName: !Sub "coderoad-lab-3-ingest-bucket-${AWS::AccountId}-${AWS::Region}"
+        - S3WritePolicy:
+            BucketName: !Sub "coderoad-lab-3-ingest-bucket-${AWS::AccountId}-${AWS::Region}"
+        - SQSPollerPolicy:
+            QueueName: !GetAtt MetadataQueue.QueueName
       Events:
         SQSMetaEvent:
           Type: SQS
           Properties:
             Queue: !GetAtt MetadataQueue.Arn
             BatchSize: 1
+
 Outputs:
   IngestBucketName:
-    Description: "S3 Bucket for Ingesting Files"
     Value: !Ref IngestBucket
   MetadataQueueURL:
-    Description: "SQS Queue for Metadata Extraction"
     Value: !Ref MetadataQueue
   IngestFunctionName:
-    Description: "Lambda Function for Ingesting Files"
     Value: !Ref IngestFunction
   MetadataFunctionName:
-    Description: "Lambda Function for Extracting Metadata"
-    Value: !Ref MetadataFunction  
-      
+    Value: !Ref MetadataFunction
