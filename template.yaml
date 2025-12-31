@@ -87,7 +87,7 @@ Resources:
             BatchSize: 1
 
 Outputs:
-  IngestBucketName:
+  BucketName:
     Value: !Ref IngestBucket
   MetadataQueueURL:
     Value: !Ref MetadataQueue
