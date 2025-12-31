@@ -37,16 +37,23 @@ jobs:
       #     sam --version
       - name: Verify SAM CLI installation
         run:  sam --version 
+      
+      - name: Build Lambda Layer
+        run: |
+          mkdir -p src/python_deps/python/lib/python3.11/site-packages
+          pip install -r src/python_deps/requirements.txt \
+            -t src/python_deps/python/lib/python3.11/site-packages
+      
       - name: Build SAM Application
         run: |
           sam build
           sam deploy \
-            --stack-name coderoad-lab-3 \ 
-            --region us-east-1
+            --stack-name coderoad-lab-3 \
+            --region us-east-1 \
             --capabilities CAPABILITY_IAM \
             --resolve-s3 \
-            --no-confirm-changeset \            
-            --no-fail-on-empty-changeset \
+            --no-confirm-changeset \
+            --no-fail-on-empty-changeset
             
       - name: Run Hernan pytest tests
         run: |
