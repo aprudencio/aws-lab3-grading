@@ -1,0 +1,85 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  coderoad-lab-3-prj
+
+  Sample SAM Template for coderoad-lab-3-prj
+Resources:
+  # Lambda layer for shared Python dependencies (boto3, Pillow, etc.)
+  PythonDependenciesLayer:
+    Type: AWS::Serverless::LayerVersion
+    Properties:
+      LayerName: coderoad-lab-3-python-deps
+      ContentUri: src/python_deps/
+      CompatibleRuntimes:
+        - python3.14
+
+  # set the resources for this  architecture: S3 → Lambda (Ingest) → SQS → Lambda (Metadata Extractor) → S3
+  IngestBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: coderoad-lab-3-ingest-bucket-${AWS::AccountId}-${AWS::Region}
+  IngestFunction:   
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: coderoad-lab-3-ingest-function
+      Handler: index.handler
+      Runtime: python3.14
+      CodeUri: src/ingest_function/
+      Layers:
+        - !Ref PythonDependenciesLayer
+      Timeout: 30
+      MemorySize: 256
+      Environment:
+        Variables:
+          METADATA_QUEUE_URL: !Ref MetadataQueue
+      Policies:
+        - S3ReadPolicy:
+            BucketName: !Ref IngestBucket
+        - SQSFullAccessPolicy: {}
+      Events:
+        S3IngestEvent:
+          Type: S3
+          Properties:
+            Bucket: !Ref IngestBucket
+            Events: s3:ObjectCreated:*
+  MetadataQueue:
+    Type: AWS::SQS::Queue 
+    Properties:
+      QueueName: coderoad-lab-3-metadata-queue
+  MetadataFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: coderoad-lab-3-metadata-function
+      Handler: index.handler
+      Runtime: python3.14
+      CodeUri: src/metadata_function/
+      Layers:
+        - !Ref PythonDependenciesLayer
+      Timeout: 60
+      MemorySize: 512
+      Policies:
+        - S3ReadPolicy:
+            BucketName: !Ref IngestBucket
+        - S3WritePolicy:
+            BucketName: !Ref IngestBucket
+      Events:
+        SQSMetaEvent:
+          Type: SQS
+          Properties:
+            Queue: !GetAtt MetadataQueue.Arn
+            BatchSize: 1  
+Outputs:
+  IngestBucketName:
+    Description: "S3 Bucket for Ingesting Files"
+    Value: !Ref IngestBucket
+  MetadataQueueURL:
+    Description: "SQS Queue for Metadata Extraction"
+    Value: !Ref MetadataQueue
+  IngestFunctionName:
+    Description: "Lambda Function for Ingesting Files"
+    Value: !Ref IngestFunction
+  MetadataFunctionName:
+    Description: "Lambda Function for Extracting Metadata"
+    Value: !Ref MetadataFunction  
+      

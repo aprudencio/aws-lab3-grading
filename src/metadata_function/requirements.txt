@@ -1,0 +1,4 @@
+# Dependencies for metadata_function Lambda
+# boto3 is included in Lambda runtime, but listed for clarity
+boto3>=1.26.0
+Pillow>=9.0.0
