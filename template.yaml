@@ -38,9 +38,9 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       FunctionName: coderoad-lab-3-ingest-function
-      Handler: index.handler
+      Handler: ingest_function.index.handler
       Runtime: python3.11
-      CodeUri: src/ingest_function/
+      CodeUri: src/
       Layers:
         - !Ref PythonDependenciesLayer
       Timeout: 30
@@ -65,9 +65,9 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       FunctionName: coderoad-lab-3-metadata-function
-      Handler: index.handler
+      Handler: metadata_function.index.handler
       Runtime: python3.11
-      CodeUri: src/metadata_function/
+      CodeUri: src/
       Layers:
         - !Ref PythonDependenciesLayer
       Timeout: 60
