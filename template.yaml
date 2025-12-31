@@ -1,3 +1,4 @@
+# Will create the resources for this  architecture: S3 → Lambda (Ingest) → SQS → Lambda (Metadata Extractor) → S3
 AWSTemplateFormatVersion: '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
 Description: >
@@ -14,7 +15,7 @@ Resources:
       CompatibleRuntimes:
         - python3.11
 
-  # set the resources for this  architecture: S3 → Lambda (Ingest) → SQS → Lambda (Metadata Extractor) → S3
+
   IngestBucket:
     Type: AWS::S3::Bucket
     Properties:
@@ -37,7 +38,7 @@ Resources:
         - S3ReadPolicy:
             BucketName: !Ref IngestBucket
         - SQSSendMessagePolicy:
-            QueueName: !GetAtt MetadataQueue.QueueName
+            QueueName: coderoad-lab-3-metadata-queue
       Events:
         S3IngestEvent:
           Type: S3
@@ -65,7 +66,7 @@ Resources:
         - S3WritePolicy:
             BucketName: !Ref IngestBucket
         - SQSPollerPolicy:
-            QueueName: !GetAtt MetadataQueue.QueueName
+            QueueName: coderoad-lab-3-metadata-queue
       Events:
         SQSMetaEvent:
           Type: SQS
