@@ -32,7 +32,7 @@ Resources:
       MemorySize: 256
       Environment:
         Variables:
-          METADATA_QUEUE_URL: !Ref MetadataQueue
+          METADATA_QUEUE_URL: !Sub "https://sqs.${AWS::Region}.amazonaws.com/${AWS::AccountId}/coderoad-lab-3-metadata-queue"
       Policies:
         - S3ReadPolicy:
             BucketName: !Ref IngestBucket
