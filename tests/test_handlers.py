@@ -181,7 +181,7 @@ class TestMetadataHandler:
         sqs_event = {
             'Records': [
                 {
-                    'body': json.dumps({'bucket': 'test-bucket', 'key': 'incoming/test.png'})
+                    'body': json.dumps({'bucket': 'tests/test-bucket', 'key': 'incoming/tiny.jpg'})
                 }
             ]
         }
@@ -193,11 +193,13 @@ class TestMetadataHandler:
         assert body['processed'] == 1
 
         mock_s3 = aws_clients['s3']
-        assert len(mock_s3.get_calls) == 1
-        assert mock_s3.get_calls[0]['Key'] == 'incoming/test.png'
+        # Two get calls: one for the image, one for idempotency check
+        assert len(mock_s3.get_calls) == 2
+        assert mock_s3.get_calls[0]['Key'] == 'incoming/tiny.jpg'
+        assert mock_s3.get_calls[1]['Key'] == 'metadata/tiny.jpg.json'
 
         assert len(mock_s3.put_calls) == 1
-        assert mock_s3.put_calls[0]['Key'] == 'metadata/test.png.json'
+        assert mock_s3.put_calls[0]['Key'] == 'metadata/tiny.jpg.json'
         assert mock_s3.put_calls[0]['ContentType'] == 'application/json'
 
     def test_metadata_handler_stores_correct_json(self, aws_clients):
@@ -205,7 +207,7 @@ class TestMetadataHandler:
         sqs_event = {
             'Records': [
                 {
-                    'body': json.dumps({'bucket': 'test-bucket', 'key': 'incoming/photo.png'})
+                    'body': json.dumps({'bucket': 'test-bucket', 'key': 'incoming/tiny.jpg'})
                 }
             ]
         }
@@ -213,11 +215,11 @@ class TestMetadataHandler:
         app1.metadata_handler(sqs_event, None)
 
         mock_s3 = aws_clients['s3']
-        stored_content = mock_s3.store['metadata/photo.png.json'].decode('utf-8')
+        stored_content = mock_s3.store['metadata/tiny.jpg.json'].decode('utf-8')
         metadata = json.loads(stored_content)
 
-        assert metadata['bucket'] == 'test-bucket'
-        assert metadata['key'] == 'incoming/photo.png'
+        assert metadata['source_bucket'] == 'test-bucket'
+        assert metadata['source_key'] == 'incoming/tiny.jpg'
         assert 'file_size_bytes' in metadata
         assert metadata['file_size_bytes'] == len(PNG_1x1)
 
