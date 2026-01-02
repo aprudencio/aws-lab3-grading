@@ -197,7 +197,7 @@ class TestMetadataHandler:
         assert mock_s3.get_calls[0]['Key'] == 'incoming/test.png'
 
         assert len(mock_s3.put_calls) == 1
-        assert mock_s3.put_calls[0]['Key'] == 'metadata/test.json'
+        assert mock_s3.put_calls[0]['Key'] == 'metadata/test.png.json'
         assert mock_s3.put_calls[0]['ContentType'] == 'application/json'
 
     def test_metadata_handler_stores_correct_json(self, aws_clients):
