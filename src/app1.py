@@ -62,6 +62,11 @@ def ingest_handler(event, context):
         # keys in S3 events are URL-encoded
         key = unquote_plus(key)
 
+        # Only process objects under the incoming/ prefix
+        if not key.startswith('incoming/'):
+            logger.info('Skipping object outside incoming/ prefix: %s', key)
+            continue
+
         message = {'bucket': bucket, 'key': key}
         try:
             resp = sqs.send_message(QueueUrl=queue_url, MessageBody=json.dumps(message))
