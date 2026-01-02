@@ -213,7 +213,7 @@ class TestMetadataHandler:
         app1.metadata_handler(sqs_event, None)
 
         mock_s3 = aws_clients['s3']
-        stored_content = mock_s3.store['metadata/photo.json'].decode('utf-8')
+        stored_content = mock_s3.store['metadata/photo.png.json'].decode('utf-8')
         metadata = json.loads(stored_content)
 
         assert metadata['bucket'] == 'test-bucket'
