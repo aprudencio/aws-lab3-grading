@@ -144,10 +144,11 @@ def metadata_handler(event, context):
             except Exception:
                 logger.exception('Failed to parse image %s/%s', bucket, key)
 
-        # Create metadata key under metadata/ prefix, preserving base name
+        # Create metadata key under metadata/ prefix, preserving base name and extension
         base = os.path.basename(key)
-        name, _ = os.path.splitext(base)
-        metadata_key = f'metadata/{name}.json'
+        #name, _ = os.path.splitext(base)
+       
+        metadata_key = f'metadata/{base}.json'
         try:
             s3.put_object(Bucket=bucket, Key=metadata_key, Body=json.dumps(meta).encode('utf-8'), ContentType='application/json')
             logger.info('Wrote metadata to s3://%s/%s', bucket, metadata_key)
