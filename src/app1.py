@@ -122,6 +122,7 @@ def metadata_handler(event, context):
             obj = s3.get_object(Bucket=bucket, Key=key)
             data = obj['Body'].read()
             filesize = len(data)
+            source_etag = obj.get('ETag', '').strip('"')
         except botocore.exceptions.ClientError:
             logger.exception('Failed to download %s/%s', bucket, key)
             continue
@@ -149,6 +150,22 @@ def metadata_handler(event, context):
         #name, _ = os.path.splitext(base)
        
         metadata_key = f'metadata/{base}.json'
+        
+        # Idempotency check: if metadata exists and source ETag matches, skip writing
+        try:
+            existing_meta_obj = s3.get_object(Bucket=bucket, Key=metadata_key)
+            existing_meta = json.loads(existing_meta_obj['Body'].read())
+            if existing_meta.get('source_etag') == source_etag:
+                logger.info('Metadata already exists with matching source ETag; skipping write for %s/%s', bucket, key)
+                processed += 1
+                continue
+        except botocore.exceptions.ClientError:
+            # Metadata doesn't exist yet, proceed with write
+            pass
+        
+        # Add source ETag to metadata for idempotency tracking
+        meta['source_etag'] = source_etag
+        
         try:
             s3.put_object(Bucket=bucket, Key=metadata_key, Body=json.dumps(meta).encode('utf-8'), ContentType='application/json')
             logger.info('Wrote metadata to s3://%s/%s', bucket, metadata_key)
