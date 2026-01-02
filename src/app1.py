@@ -126,7 +126,7 @@ def metadata_handler(event, context):
             logger.exception('Failed to download %s/%s', bucket, key)
             continue
 
-        meta = {'bucket': bucket, 'key': key, 'file_size_bytes': filesize}
+        meta = {'source_bucket': bucket, 'source_key': key, 'file_size_bytes': filesize}
 
         if Image is None:
             logger.warning('Pillow not installed; skipping image parsing')
